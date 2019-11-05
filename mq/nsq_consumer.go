@@ -1,15 +1,39 @@
 package nsq
 import (
     "fmt"
+    "encoding/json"
     _ "time"
     "errors"
     "github.com/nsqio/go-nsq"
+    "github.com/kooshine/goutil/db"
 )
 
-type nsq_consumer struct {}
+type Nsq_consumer struct {
+    c *nsq.Consumer
+    tag string
+}
+type Recv struct {
+    Msg string
+}
 
-func (*nsq_consumer) HandleMessage(msg *nsq.Message) error {
-    fmt.Println("receive: ", msg.NSQDAddress, "message:", string(msg.Body))
+func (r *Nsq_consumer) HandleMessage(msg *nsq.Message) error {
+    fmt.Println("receive: ", msg.Body)
+
+    d := &Recv{}
+    json.Unmarshal(msg.Body, &d)
+        /*
+    if err := json.Unmarshal(msg.Body, &d); err == nil {
+        fmt.Println(">>>>>>>>>>>>>>>>>>",d.Msg)
+        return err
+    }*/
+    fmt.Println(">>>>>>>>>>>>>>>>>>",d.Msg)
+    var dataMap = map[string]string {
+        "topic": "test",
+        "channel": "channel",
+        "message": d.Msg,
+    }
+    ret := db.SQLManager.Insert("packet", dataMap)
+    fmt.Println(ret)
     return nil
 }
 
@@ -23,7 +47,12 @@ func Consumer(topic string, channel string, host string) error {
         return errors.New(err_msg)
     }
     c.SetLogger(nil, 0)
-    c.AddHandler(&nsq_consumer{})
+    nsq_c := &Nsq_consumer {
+        c:  c,
+        tag: "tag",
+    }
+    c.AddHandler(nsq_c)
+    fmt.Println(c)
 
     //建立NSQLookupd连接
     if err := c.ConnectToNSQLookupd(host); err != nil {
