@@ -4,7 +4,9 @@ import (
     "fmt"
     "log"
     "net/http"
+    "encoding/json"
     "github.com/gorilla/mux"
+    "github.com/kooshine/goutil/db"
 )
 
 type HttpServer struct {
@@ -22,11 +24,11 @@ func (svr *HttpServer) Run() {
     }
 
     r := mux.NewRouter()
-    r.HandleFunc("/test", svr.test_handler)
+    r.HandleFunc("/home", svr.test_handler)
     server.Handle("/", r)
 
     go func() {
-        fmt.Println("test_http")
+        fmt.Println("start listen http...")
         err := http.ListenAndServe(svr.Host, server)
         if err != nil {
             log.Fatal("HttpServer Listen Failed:", err)
@@ -37,5 +39,30 @@ func (svr *HttpServer) Run() {
 }
 
 func (svr *HttpServer) test_handler(res http.ResponseWriter, req *http.Request) {
-    fmt.Println("abc")
+    req.ParseForm()
+    fmt.Println(req.Method)
+    uid := req.Form["uid"]
+    fmt.Println(uid)
+
+    if req.Method == "GET" {
+        for k, v := range req.Form {
+            fmt.Println("key:", k)
+            fmt.Println("val:", v)
+        }
+        rows := db.SQLManager.Count("info_website")
+        fmt.Println(rows)
+
+        result := db.SQLManager.Search("info_website", "*", "id > -1")
+        ret, _ := json.Marshal(result)
+        //fmt.Println(result)
+        res.Write([]byte(string(ret)))
+    }else if req.Method == "POST" {
+        buf := make([]byte, 1024)
+        n, _ := req.Body.Read(buf)
+        fmt.Println("raw data:", string(buf[:n]))
+    }else if req.Method == "PUT" {
+        fmt.Println(req.Method)
+    }else if req.Method == "DELETE" {
+        fmt.Println(req.Method)
+    }
 }

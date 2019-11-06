@@ -25,6 +25,56 @@ func (s *SQLManage) DBConnect(dbUrl string) {
 	}
     fmt.Println("Lemon DB connect OK")
 }
+func (s *SQLManage) Count(tablename string) int64 {
+    /*
+        查询符合条件的记录数
+    */
+    count_lang := fmt.Sprintf("SELECT count(1) FROM %s", tablename)
+    rows, err := s.lemon.Query(count_lang)
+    defer rows.Close()
+    if err != nil {
+        panic(err)
+        return -1
+    }
+    var total int64
+    for rows.Next() {
+        rows.Scan(&total)
+    }
+    return total
+}
+func (s *SQLManage) Search(tablename string, fields string, indexMap string) []map[string]string {
+    /*
+        查找数据
+    */
+    lang := fmt.Sprintf("SELECT %s FROM %s WHERE %s", fields, tablename, indexMap)
+
+    var result []map[string]string
+    rows, err := s.lemon.Query(lang)
+    if err != nil {
+        panic(err)
+        return result
+    }
+
+    columns, _ := rows.Columns()
+
+    values := make([]sql.RawBytes, len(columns))
+    scanArgs := make([]interface{}, len(values))
+    for i := range values {
+        scanArgs[i] = &values[i]
+    }
+
+    for rows.Next() {
+        res := make(map[string]string)
+        rows.Scan(scanArgs...)
+        for i, col := range values {
+            res[columns[i]] = string(col)
+        }
+        result = append(result, res)
+    }
+
+    return result
+}
+
 func (s *SQLManage) Insert(tablename string, data map[string]string) int64 {
     /*
     lang := "INSERT INTO packet(topic, channel, message) VALUES('test5','abcde', '123456')"
