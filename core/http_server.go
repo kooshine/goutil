@@ -39,8 +39,13 @@ func (svr *HttpServer) Run() {
 }
 
 func (svr *HttpServer) test_handler(res http.ResponseWriter, req *http.Request) {
+    defer func() {
+        if err := recover(); err != nil {
+            fmt.Println(err)
+            res.WriteHeader(http.StatusInternalServerError)
+        }
+    }()
     req.ParseForm()
-    fmt.Println(req.Method)
     uid := req.Form["uid"]
     fmt.Println(uid)
 
@@ -54,7 +59,6 @@ func (svr *HttpServer) test_handler(res http.ResponseWriter, req *http.Request) 
 
         result := db.SQLManager.Search("info_website", "*", "id > -1")
         ret, _ := json.Marshal(result)
-        //fmt.Println(result)
         res.Write([]byte(string(ret)))
     }else if req.Method == "POST" {
         buf := make([]byte, 1024)
